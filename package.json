@@ -1,0 +1,14 @@
+{
+  "name": "backbonecabal-web3batch",
+  "version": "0.1.0",
+  "description": "web3 multicall batch process",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "SEE LICENSE IN LICENSE",
+  "devDependencies": {
+    "lerna": "^3.22.1"
+  }
+}

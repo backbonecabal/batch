@@ -1,0 +1,77 @@
+version: '3.7'
+
+volumes:
+    grafana_data: {}
+    victoria_metrics_data: {}
+
+networks:
+  web3-batch-exporter:
+
+services:
+  web3-batch-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.web3-batch-service
+    environment:
+      - PROVIDER_URL=${PROVIDER_URL}
+      - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
+      - PORT=3001
+    ports:
+      - 3001:3001
+    networks:
+      - web3-batch-exporter
+    restart: always
+
+  web3-batch-exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile.web3-batch-exporter
+    environment:
+      - WEB3_BATCH_SERVICE_URL=http://web3-batch-service:3001/
+      - SERVER_PORT=8000
+    ports:
+      - 8000:8000
+    links:
+      - web3-batch-service:web3-batch-service
+    networks:
+      - web3-batch-exporter
+    restart: always
+
+  vmagent:
+    image: victoriametrics/vmagent
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+    command:
+      - '-promscrape.config=/etc/prometheus/prometheus.yml'
+      - '-remoteWrite.url=http://victoria-metrics:8428/api/v1/write'
+    links:
+      - web3-batch-exporter:web3-batch-exporter
+      - victoria-metrics:victoria-metrics
+    depends_on:
+      - victoria-metrics
+    networks:
+      - web3-batch-exporter
+    restart: always
+
+  victoria-metrics:
+    image: victoriametrics/victoria-metrics:v1.49.0
+    volumes:
+      - victoria_metrics_data:/victoria-metrics-data
+    ports:
+      - 8428:8428
+    networks:
+      - web3-batch-exporter
+    restart: always
+
+  grafana:
+    image: grafana/grafana
+    depends_on:
+      - victoria-metrics
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+    networks:
+      - web3-batch-exporter
+    restart: always
